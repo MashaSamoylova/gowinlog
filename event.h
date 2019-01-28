@@ -71,3 +71,7 @@ ULONGLONG CreateSystemRenderContext();
 
 // For testing, get a handle on the first event in the log
 ULONGLONG GetTestEventHandle();
+
+// Enable event logging of `ChannelName` channel with buffer size
+// `BufferSizeMb` in Mb.
+ULONGLONG EnableChannel(char* ChannelName, int BufferSizeMb);

@@ -249,3 +249,44 @@ ULONGLONG GetTestEventHandle() {
 	EvtClose(result);
 	return (ULONGLONG)record;
 }
+
+ULONGLONG EnableChannel(char* ChannelName, int BufferSizeMb) {
+    //Convert char* wchar_t*.
+    int cSize = strlen(ChannelName)+1;
+    wchar_t wcChannelName[cSize];
+    for(int count = 0; count < cSize; count++) {
+        wcChannelName[count] = (wchar_t) ChannelName[count];
+    }
+
+    EVT_HANDLE hChannel = NULL;
+    EVT_VARIANT ChannelProperty;
+    DWORD dwBufferSize = sizeof(EVT_VARIANT);
+
+    hChannel = EvtOpenChannelConfig(NULL, wcChannelName, 0);
+    if (NULL == hChannel) {
+        return 1;
+    }
+
+    // Set status `Enable`
+    RtlZeroMemory(&ChannelProperty, dwBufferSize);
+    ChannelProperty.Type = EvtVarTypeBoolean;
+    ChannelProperty.BooleanVal = TRUE;
+    if  (!EvtSetChannelConfigProperty(hChannel, EvtChannelConfigEnabled, 0, &ChannelProperty))
+    {
+     return 1;
+    }
+
+    // Set buffer size.
+    RtlZeroMemory(&ChannelProperty, dwBufferSize);
+    ChannelProperty.Type = EvtVarTypeUInt64;
+    ChannelProperty.UInt64Val = BufferSizeMb * 1024 *1024;
+    if  (!EvtSetChannelConfigProperty(hChannel, EvtChannelLoggingConfigMaxSize, 0, &ChannelProperty)) {
+        return 1;
+    }
+
+    // Save changes.
+    if (!EvtSaveChannelConfig(hChannel, 0)) {
+        return 1;
+    }
+    return 0;
+}

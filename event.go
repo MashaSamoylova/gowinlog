@@ -5,6 +5,7 @@ package winlog
 /*
 #cgo LDFLAGS: -l wevtapi
 #include "event.h"
+#include "bookmark.h"
 */
 import "C"
 import (
@@ -92,6 +93,17 @@ const (
 	EvtFormatMessageXml
 )
 
+// Enable event logging of `ChannelName` channel with buffer size
+// `BufferSizeMb` in Mb.
+func EnableChannel(ChannelName string, BufferSizeMb int) error {
+	cChannelName := C.CString(ChannelName)
+	defer C.free(unsafe.Pointer(cChannelName))
+	if result := C.EnableChannel(cChannelName, C.int(BufferSizeMb)); result != 0 {
+		return fmt.Errorf("failed to enable channel")
+	}
+	return nil
+}
+
 // Get a handle to a render context which will render properties from the System element.
 // Wraps EvtCreateRenderContext() with Flags = EvtRenderContextSystem. The resulting
 // handle must be closed with CloseEventHandle.
@@ -123,6 +135,7 @@ func CreateListener(channel, query string, startpos EVT_SUBSCRIBE_FLAGS, callbac
 // `query` is an XPath expression to filter the events on the channel - "*" allows all events.
 // The resulting handle must be closed with CloseEventHandle.
 func CreateListenerFromBookmark(channel, query string, callbackWrapperKey uint32, bookmarkHandle BookmarkHandle) (ListenerHandle, error) {
+	fmt.Println("From bookmark")
 	cChan := C.CString(channel)
 	cQuery := C.CString(query)
 	listenerHandle := C.CreateListenerFromBookmark(cChan, cQuery, C.PVOID(uintptr(callbackWrapperKey)), C.ULONGLONG(bookmarkHandle))
