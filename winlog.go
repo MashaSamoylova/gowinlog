@@ -7,6 +7,8 @@ import (
 	"sync"
 	"time"
 	"unsafe"
+
+	"github.com/hashicorp/go-multierror"
 )
 
 func (self *WinLogWatcher) Event() <-chan *WinLogEvent {
@@ -184,17 +186,22 @@ func (self *WinLogWatcher) removeSubscription(channel string, watch *channelWatc
 }
 
 // Remove all subscriptions from this watcher and shut down.
-func (self *WinLogWatcher) Shutdown() {
+func (self *WinLogWatcher) Shutdown() (resultErr error) {
 	self.watchMutex.Lock()
 	watches := self.watches
 	self.watchMutex.Unlock()
 	close(self.shutdown)
 	for channel, watch := range watches {
-		self.removeSubscription(channel, watch)
+		if err := self.removeSubscription(channel, watch); err != nil {
+			multierror.Append(resultErr, fmt.Errorf("failed to remove subscription; %s", err))
+		}
 	}
-	CloseEventHandle(uint64(self.renderContext))
+	if err := CloseEventHandle(uint64(self.renderContext)); err != nil {
+		multierror.Append(resultErr, fmt.Errorf("failed to close EventHandle; %s", err))
+	}
 	close(self.errChan)
 	close(self.eventChan)
+	return
 }
 
 func (self *WinLogWatcher) PublishError(err error) {
